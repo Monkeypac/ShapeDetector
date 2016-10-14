@@ -15,6 +15,8 @@
 
 #include "Optimizer.h"
 #include "b2Separator.h"
+#include "IAProcessing.h"
+
 
 typedef std::vector <sf::Vector2i> Shape;
 extern point mapsize;
@@ -44,7 +46,7 @@ public:
      * @param tolerance The tolerance for optimizing
      * @param output The output file
      */
-	void process(int tolerance, const std::string& output);
+	void process(float tolerance, const std::string& output);
 
 private:
     /**
@@ -56,12 +58,27 @@ private:
      * @param tolerance The tolerance for optimizing
      * @return  The new vector of shapes optimized
      */
-    std::vector<std::vector<std::vector<point>>> optimize(int tolerance);
+    std::vector<std::vector<point>> optimize(float tolerance);
+
+	std::vector<std::vector<std::vector<point>>> convexify(std::vector<std::vector<point>>& input);
+
     /**
      * @brief print Saves the shapes to a file
      * @param shapes The shapes to write
      */
     void print(std::vector<std::vector<std::vector<point>>> shapes);
+
+	/**
+	* @brief print Saves the shapes to a file
+	* @param shapes The shapes to write
+	*/
+	void print(std::vector<std::vector<point>> shapes);
+
+	/**
+	* @brief print Saves the shapes to a file
+	* @param shapes The shapes to write
+	*/
+	void print(std::vector<point> shapes);
 
     /**
      * @brief getPointsList
@@ -136,8 +153,11 @@ private:
 private:
 
 	sf::Image				m_inputImage;
+	sf::Image				m_outputImage;
+	IAProcessing*			m_IAProcessor;
 	std::vector<Shape>		m_shapes;
 	float					m_minimumOpacity;
+	std::string				m_inputpath;
 };
 
 #endif

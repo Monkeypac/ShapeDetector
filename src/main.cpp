@@ -39,7 +39,7 @@ int main(int argc, char** argv)
 		{
 			switch (argv[i][1])
 			{
-			case 't':	//tolerance
+			case 't':	
 				tolerance = atof(&argv[i][2]);
 				break;
 			case 'o':

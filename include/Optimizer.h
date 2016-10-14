@@ -16,8 +16,18 @@
 struct point{
 	point() : x(0.f), y(0.f){}
 	point(int a, int b) : x(a), y(b){}
+	inline bool operator==(const point& a){
+		if (x == a.x && y == a.y)
+			return true;
+		else
+			return false;
+	}
+	inline bool operator!(){
+		return (x == -1, y == -1);
+	}
 	float x;
 	float y;
+	bool solid = true;
 };
 
 typedef struct point point;
@@ -110,6 +120,6 @@ void write(std::vector<std::vector<point>>& vec, std::string path);
  * @param vec The vector of shapes to write
  * @param path The file to write in
  */
-void write(std::vector<std::vector<std::vector<point>>>& vec, std::string path);
+void write(std::vector<std::vector<std::vector<point>>>& vec, std::string path, std::string inputpath);
 
 #endif

@@ -118,6 +118,13 @@ void b2Separator::calcShapes(std::vector<point> &pVerticesVec, std::vector<std::
     while (!queue.empty()) {
         vec = queue.front();
         n = vec.size();
+		if (n < 4){
+			if (n > 2)
+				figsVec.push_back(queue.front());
+			queue.pop();
+			continue;
+		}
+
         isConvex=true;
         
         for (i=0; i<n; i++) {
@@ -148,20 +155,21 @@ void b2Separator::calcShapes(std::vector<point> &pVerticesVec, std::vector<std::
                             point v = *pV;
                             dx=p2.x-v.x;
                             dy=p2.y-v.y;
-                            t=dx*dx+dy*dy;
+							t = dx*dx + dy*dy;
                             
                             if ((t<minLen)) {
                                 h=j1;
                                 k=j2;
                                 hitV=v;
-                                minLen=t;
+								minLen = t;
                             }
                         }
                     }
                 }
                 
-                if (minLen==MAX_VALUE) {
-                    //TODO: Throw Error !!!
+				if (minLen == MAX_VALUE) {
+					queue.pop();
+					continue;
                 }
                 
                 vec1 = new std::vector<point>();
@@ -256,8 +264,6 @@ point* b2Separator::hitRay(float x1, float y1, float x2, float y2, float x3, flo
     float t6 = y4-y3;
     float t7 = t4*t5-t3*t6;
 
-    //DBZ Error. Undefined hit segment.
-    if(t7 == 0) return NULL;
     
     float  a = (((t5*t2) - t6*t1) / t7);
     float px = x1+a*t3;

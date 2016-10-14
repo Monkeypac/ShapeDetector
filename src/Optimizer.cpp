@@ -1,16 +1,16 @@
 #include "Optimizer.h"
-#include "Application.h"
 
 point mapsize = point();
 
 int flags = 0;
 
-int Sign(double x)
-{
-    if (x < 0) {
+int Sign(double x) {
+	if (x < 0)
+	{
 		return -1;
 	}
-    else {
+	else
+	{
 		return 1;
 	}
 }
@@ -21,39 +21,59 @@ void drawLine(point a, point b, std::vector<point>& vec, std::vector<point>::ite
 	float dy = b.y - a.y;
 	int x;
 	int y;
-
-    if (fabs(dy) > fabs(dx)) {
-        for (y = a.y; y != b.y; y += Sign(dy)) {
+	//Log::debug() << "From " << a.x << a.y << " To " << b.x << b.y;
+	//Log::debug("Before:") << vec.size();
+	if (fabs(dy) > fabs(dx))
+	{
+		for (y = a.y; y != b.y; y += Sign(dy))
+		{
+			//Log::debug("|a|");
 			x = a.x + (y - a.y) * dx / dy;
 			beginindex = vec.emplace(beginindex, x, y);
 			++beginindex;
 		}
 	}
 
-    else {
-        for (x = a.x; x != b.x; x += Sign(dx)) {
+	else
+	{
+		for (x = a.x; x != b.x; x += Sign(dx))
+		{
+			//Log::debug("|b|");
 			y = a.y + (x - a.x) * dy / dx;
 			beginindex = vec.emplace(beginindex, x, y);
 			++beginindex;
 		}
 	}
+	Log::debug("After:") << vec.size();
 }
 
 void Correct(std::vector<point>& vec){
 	point prev = vec[0];
-	for (auto it = vec.begin(); it != vec.end(); ++it){
+	for (auto it = vec.begin()+1; it != vec.end(); ++it){
 		if (it->x > prev.x + 1 || it->x < prev.x - 1)
 			drawLine(prev, *it, vec, it);
 		else if (it->y > prev.y + 1 || it->y < prev.y - 1)
 			drawLine(prev, *it, vec, it);
 		prev = *it;
 	}
+	if (vec.size() > 2){
+		prev = vec[vec.size() - 1];
+		auto it = vec.begin();
+		if (it->x > prev.x + 1 || it->x < prev.x - 1)
+			drawLine(prev, *it, vec, it);
+		else if (it->y > prev.y + 1 || it->y < prev.y - 1)
+			drawLine(prev, *it, vec, it);
+	}
 }
 
 void print(std::vector<point>& vec){
 	point prev = vec[0];
 	for (auto it = vec.begin(); it != vec.end(); ++it){
-		if(flags & DEBUG) Log::debug() << it->x << " " << it->y;
+		if (it->x > prev.x + 1 || it->x < prev.x - 1)
+			Log::debug() << "Here ! X";
+		if (it->y > prev.y + 1 || it->y < prev.y - 1)
+			Log::debug() << "Here ! Y";
+		Log::debug() << it->x << " " << it->y;
 		prev = *it;
 	}
 }
@@ -103,10 +123,10 @@ void loadfromXML(std::vector<std::vector<point>>& vec, std::string& path)
 		vec.push_back(v);
 		element = element.next_sibling();
 	}
+	std::cout << "loaded file " << path << " successfully" << std::endl;
 }
 
 std::vector<point> Optimize(std::vector<point> points, float toleranceMult){
-
 	std::vector<point> result;
 	point begin = points.at(0);
 	point next;
@@ -142,7 +162,6 @@ std::vector<point> Optimize(std::vector<point> points, float toleranceMult){
 
 		tolerance *= toleranceMult;
 		if (angle < prevangle - tolerance || angle > prevangle + tolerance){
-
 			result.push_back(points.at(index - 1));
 			begin = points.at(index);
 			beginindex = index;
@@ -161,9 +180,11 @@ void write(std::vector<std::vector<point>>& vec, std::string path)
 {
 	std::ofstream s;
 	s.open(path);
-    for (std::vector<point> v : vec) {
+	for (std::vector<point> v : vec)
+	{
 		s << "<shape>" << std::endl;;
-        for (point p : v) {
+		for (point p : v)
+		{
 			s << "\t<point x=\"" << p.x << "\" y=\"" << p.y << "\" />" << std::endl;
 		}
 		s << "</shape>" << std::endl;;
@@ -178,33 +199,41 @@ bool shapeLargeEnough(std::vector<point> vec, int pas)
 	X = false;
 	Y = false;
 
-    for (int i = 0; i < (int)vec.size() - 1; i++) {
-		if (abs(vec[i].x - vec[i+1].x) > pas)
+	for (int i = 0; i < vec.size() - 1; i++)
+	{
+		if (abs(vec[i].x - vec[i + 1].x) > pas)
 			X = true;
-		if (abs(vec[i].y - vec[i+1].y) > pas)
+		if (abs(vec[i].y - vec[i + 1].y) > pas)
 			Y = true;
 	}
 
 	return X && Y;
 }
 
-void write(std::vector<std::vector<std::vector<point>>>& vec, std::string path)
+void write(std::vector<std::vector<std::vector<point>>>& vec, std::string path, std::string inputpath)
 {
 	std::ofstream s;
 	s.open(path);
-    for (std::vector<std::vector<point>> v : vec) {
-		s << "<object>" << std::endl;
-        for (std::vector<point> v2 : v) {
-            if (v2.size() >= 3 && shapeLargeEnough(v2, 5) ) {
-				s << "\t<shape>" << std::endl;
-                for (point p : v2) {
-					s << "\t\t<point x=\"" << p.x << "\" y=\"" << p.y << "\" />" << std::endl;
+	s << "<Map>" << std::endl;
+	s << "\t<Background texture='"<< inputpath <<"'/>" << std::endl;
+	s << "\t<Ground texture=''/>" << std::endl;
+	s << "\t<Foreground texture=''/>" << std::endl;
+	s << "\t<MapElements>" << std::endl;
+	for (std::vector<std::vector<point>> v : vec) {
+		s << "\t\t<StaticElement>" << std::endl;
+		for (std::vector<point> v2 : v) {
+			if (v2.size() >= 3 && shapeLargeEnough(v2, 5)) {
+				s << "\t\t\t<shape>" << std::endl;
+				for (point p : v2) {
+					s << "\t\t\t\t<point x=\"" << p.x << "\" y=\"" << p.y << "\" />" << std::endl;
 				}
-				s << "\t</shape>" << std::endl;
+				s << "\t\t\t</shape>" << std::endl;
 			}
 		}
-		s << "</object>" << std::endl;
+		s << "\t\t</StaticElement>" << std::endl;
 	}
+	s << "\t<MapElements>" << std::endl;
+	s << "</Map>" << std::endl;
 
 	s.close();
 }

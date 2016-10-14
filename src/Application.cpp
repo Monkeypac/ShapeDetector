@@ -10,30 +10,53 @@ Application::Application(std::string path) : m_minimumOpacity(0.1)//, pool()
 	m_inputImage.loadFromFile(path);
 	mapsize.x = m_inputImage.getSize().x;
 	mapsize.y = m_inputImage.getSize().y;
+	m_outputImage.create(mapsize.x + 1, mapsize.y + 1);
+	m_IAProcessor = new IAProcessing(&m_outputImage);
+	m_inputpath = path;
 }
-
 
 Application::~Application()
 {
+	m_outputImage.saveToFile("debugOutput.png");
+	delete m_IAProcessor;
 }
 
-
-void Application::process(int tolerance, const std::string& output)
+void Application::process(float tolerance, const std::string& output)
 {
-	std::vector<std::vector<std::vector<point>>> shapes;
-    Log::debug() << output;
-
+	std::vector<std::vector<point>> shapes;
+	std::vector<std::vector<std::vector<point>>> ConvexShapes;
+	Log::info() << "Begining Detection";
 	if (flags & TIME) Timer::chronos<Application>();
 	findShapes();
 	if (flags & TIME) Timer::chronos<Application>("Detecting shapes");
 
+	Log::info() << "Begining Optimization";
 	if (flags & TIME) Timer::chronos<Application>();
 	shapes = optimize(tolerance);
 	if (flags & TIME) Timer::chronos<Application>("Optimization");
 
-	write(shapes, output);
+	Log::info() << "Begining IAProcessing";
+	if (flags & TIME) Timer::chronos<Application>();
+	m_IAProcessor->process(shapes);
+	if (flags & TIME) Timer::chronos<Application>("IAProcessing");
+	
+	Log::info() << "Begining Convexification";
+	if (flags & TIME) Timer::chronos<Application>();
+	ConvexShapes = convexify(shapes);
+	if (flags & TIME) Timer::chronos<Application>("Convexification");
 
-	if (flags & PRINT) print(shapes);
+	if (flags & TIME) Timer::chronos<Application>();
+	write(ConvexShapes, output, m_inputpath);
+	//m_IAProcessor->writeAll(output);
+	if (flags & TIME) Timer::chronos<Application>("Writing");
+	
+	if (flags & PRINT & TIME) Timer::chronos<Application>();
+	if (flags & PRINT) {
+		print(ConvexShapes);
+		m_IAProcessor->print();
+	}
+	if (flags & PRINT & TIME) Timer::chronos<Application>("Printing");
+
 }
 
 void Application::findShapes()
@@ -64,34 +87,44 @@ void Application::findShapes()
 		writeShape(m_shapes, "map_explored.xml", true);
 }
 
-std::vector<std::vector<std::vector<point>>> Application::optimize(int tolerance)
+std::vector<std::vector<point>> Application::optimize(float tolerance)
 {
 	std::vector<std::vector<point>> points = getPointsList();
-	std::vector<point> tmp_vect;
-	std::vector<std::vector<point>> tmp_sep;
-	std::vector<std::vector<std::vector<point>>> result;
+	std::vector<std::vector<point>> result;
 
 	// optimize then separate
     for (std::vector<point> v : points) {
-		tmp_vect.clear();
 		Correct(v);
+		result.push_back(Optimize(v, tolerance));
+	}
+
+	return result;
+}
+
+
+
+std::vector<std::vector<std::vector<point>>> Application::convexify(std::vector<std::vector<point>>& input){
+
+	std::vector<point> tmp_vect;
+	std::vector<std::vector<point>> tmp_sep;
+	std::vector<std::vector<std::vector<point>>> result;
+	for (std::vector<point> v : input) {
+		tmp_vect.clear();
 		tmp_vect = v;
-		tmp_vect = Optimize(tmp_vect, tolerance);
 		tmp_sep = b2Separator::Separate(&tmp_vect);
 		for (auto it = tmp_sep.begin(); it != tmp_sep.end(); ++it)
 			std::reverse(it->begin(), it->end());
 		result.push_back(tmp_sep);
 	}
-	
-	// take sure all shapes are well formed
+// take sure all shapes are well formed
 	std::vector<std::vector<std::vector<point>>> tmp_res;
-    for (std::vector<std::vector<point>> v : result) {
+	for (std::vector<std::vector<point>> v : result) {
 		std::vector<std::vector<point>> tmp_v;
 		for (std::vector<point> v2 : v){
-            if (toCut(v2)) {
-                for (std::vector<point> av : cut(v2))
+			if (toCut(v2)) {
+				for (std::vector<point> av : cut(v2))
 					tmp_v.push_back(av);
-			}
+				}
 			else
 				tmp_v.push_back(v2);
 		}
@@ -99,25 +132,50 @@ std::vector<std::vector<std::vector<point>>> Application::optimize(int tolerance
 	}
 	result = tmp_res;
 	return result;
+
 }
 
 void Application::print(std::vector<std::vector<std::vector<point>>> shapes)
 {
-	sf::Image img;
-	img.create(mapsize.x + 1, mapsize.y + 1);
 	int i = 0;
     for (std::vector<std::vector<point>> v : shapes) {
 		for (std::vector<point> v2 : v){
             if (v2.size() >= 3 && shapeLargeEnough(v2, 5)) {
 				Correct(v2);
 				for (auto it = v2.begin(); it != v2.end(); ++it){
-					img.setPixel(it->x, it->y, sf::Color::Green);
+					m_outputImage.setPixel(it->x, it->y, sf::Color::Green);
 					i++;
 				}
 			}
 		}
 	}
-	img.saveToFile("print.png");
+}
+
+void Application::print(std::vector<std::vector<point>> shapes)
+{
+	int i = 0;
+	for (std::vector<point> v : shapes) {
+		if (v.size() >= 3 && shapeLargeEnough(v, 5)) {
+			Correct(v);
+			for (auto it = v.begin(); it != v.end(); ++it){
+				m_outputImage.setPixel(it->x, it->y, sf::Color::Green);
+				i++;
+			}
+		}
+	}
+}
+
+
+void Application::print(std::vector<point> shapes)
+{
+	int i = 0;
+	if (shapes.size() >= 3 && shapeLargeEnough(shapes, 5)) {
+		Correct(shapes);
+		for (auto it = shapes.begin(); it != shapes.end(); ++it){
+			m_outputImage.setPixel(it->x, it->y, sf::Color::Green);
+			i++;
+		}
+	}
 }
 
 bool Application::isOnBorder(sf::Vector2i& v)
