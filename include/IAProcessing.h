@@ -8,6 +8,7 @@
 #include "Optimizer.h"
 #include <algorithm>
 #include <stack>
+#include <functional>
 
 extern point mapsize;
 
@@ -44,6 +45,10 @@ struct Link{
 	std::string  type;
 };
 
+/* Curves Function */
+
+float test(float x);
+
 class IAProcessing
 {
 public:
@@ -65,6 +70,8 @@ private:
 	int  orientation(point p, point q, point r);
 	bool doIntersect(point p1, point q1, point p2, point q2);
 
+	void detectOnLine(Node& nodeOfOrigin, sf::Vector2f origin, float (*function)(float), bool increasing = true);
+	bool isPointInNode(Node& node, sf::Vector2f& pt);
 	
 	void write(Node&, std::ofstream& stream);
 	void write(Link&, std::ofstream& stream);

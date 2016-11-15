@@ -79,7 +79,12 @@ void IAProcessing::process(std::vector<std::vector<point>>& AllShapes){
 		}
 	}
 	clearNode1();
-	link();
+	for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it)
+		Log::debug("Display") << "id:" << it->id;
+	Log::debug() << "Done";
+	detectOnLine(m_nodes[2], sf::Vector2f(0, 500), &test);
+	Log::debug() << "re Done";
+	//link();
 }
 
 float IAProcessing::distance(point& a, point& b){
@@ -463,4 +468,54 @@ bool IAProcessing::checkAddJump(Link& l){
 		}
 	}
 	return true;
+}
+
+void IAProcessing::detectOnLine(Node& nodeOfOrigin, sf::Vector2f origin, float (*function)(float), bool increasing){
+	sf::Vector2f delta(0,0), newpoint;
+	//bool stop = false;
+	for (auto it = nodeOfOrigin.area.begin(); it != nodeOfOrigin.area.end(); ++it)
+		Log::debug() << it
+	return;
+	while (true)
+	{
+		if (increasing)
+			delta.x++;
+		else
+			delta.x--;
+		delta.y = function(delta.x);
+		newpoint = origin + delta;
+		Log::debug() << "newPoint = " << newpoint;
+		if (newpoint.x < 0 || newpoint.y < 0 || newpoint.x > mapsize.x || newpoint.y > mapsize.y)
+			return;
+		for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it)
+		{
+			if (*it == nodeOfOrigin)
+				continue;
+
+			if (isPointInNode(*it, newpoint))
+			{
+				Log::debug() << "is ok ! with " << it->id;
+				return;
+			}
+		}
+	}
+}
+
+bool IAProcessing::isPointInNode(Node& node, sf::Vector2f& pt)
+{
+	std::vector<point> points = node.area;
+	int i, j, nvert = points.size();
+	bool c = false;
+
+	for (i = 0, j = nvert - 1; i < nvert; j = i++) {
+		if (((points[i].y >= pt.y) != (points[j].y >= pt.y)) &&
+			(pt.x <= (points[j].x - points[i].x) * (pt.y - points[i].y) / (points[j].y - points[i].y) + points[i].x))
+			c = !c;
+	}
+	return c;
+}
+
+float test(float x)
+{
+	return x;
 }
