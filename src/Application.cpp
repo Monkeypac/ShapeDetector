@@ -47,7 +47,7 @@ void Application::process(float tolerance, const std::string& output)
 
 	if (flags & TIME) Timer::chronos<Application>();
 	write(ConvexShapes, output, m_inputpath);
-	//m_IAProcessor->writeAll(output);
+	m_IAProcessor->writeAll(output);
 	if (flags & TIME) Timer::chronos<Application>("Writing");
 	
 	if (flags & PRINT & TIME) Timer::chronos<Application>();

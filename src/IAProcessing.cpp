@@ -79,23 +79,23 @@ void IAProcessing::process(std::vector<std::vector<point>>& AllShapes){
 		}
 	}
 	clearNode1();
+	//Log::debug() << "Done";
 	for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it)
-		Log::debug("Display") << "id:" << it->id;
-	Log::debug() << "Done";
-	detectOnLine(m_nodes[2], sf::Vector2f(0, 500), &test);
-	Log::debug() << "re Done";
-	//link();
+	{
+		//Log::debug() << it->id;
+		for (int i = 0; i < it->area.size(); i++)
+		{
+			//Log::debug() << it->area[i].x << it->area[i].y;
+		}
+	}
+	//Log::debug() << "re Done";
+	link();
 }
-
-float IAProcessing::distance(point& a, point& b){
-	return sqrt((a.x - b.x)*(a.x - b.x) + (a.y - b.y) * (a.x - b.x));
-}
+/*
 bool IAProcessing::is_between(point& first, point& second, point& checked){
 	return (distance(first, checked) + distance(checked, second) == distance(first, second));
 }
-
-// Given three colinear points p, q, r, the function checks if
-// point q lies on line segment 'pr'
+*/
 bool IAProcessing::onSegment(point p, point q, point r)
 {
 	if (q.x <= std::max(p.x, r.x) && q.x >= std::min(p.x, r.x) &&
@@ -105,11 +105,6 @@ bool IAProcessing::onSegment(point p, point q, point r)
 	return false;
 }
 
-// To find orientation of ordered triplet (p, q, r).
-// The function returns following values
-// 0 --> p, q and r are colinear
-// 1 --> Clockwise
-// 2 --> Counterclockwise
 int IAProcessing::orientation(point p, point q, point r)
 {
 	// See http://www.geeksforgeeks.org/orientation-3-ordered-points/
@@ -122,34 +117,19 @@ int IAProcessing::orientation(point p, point q, point r)
 	return (val > 0) ? 1 : 2; // clock or counterclock wise
 }
 
-// The main function that returns true if line segment 'p1q1'
-// and 'p2q2' intersect.
 bool IAProcessing::doIntersect(point p1, point q1, point p2, point q2)
 {
-	// Find the four orientations needed for general and
-	// special cases
 	int o1 = orientation(p1, q1, p2);
 	int o2 = orientation(p1, q1, q2);
 	int o3 = orientation(p2, q2, p1);
 	int o4 = orientation(p2, q2, q1);
 
-	// General case
 	if (o1 != o2 && o3 != o4)
 		return true;
-
-	// Special Cases
-	// p1, q1 and p2 are colinear and p2 lies on segment p1q1
 	if (o1 == 0 && onSegment(p1, p2, q1)) return true;
-
-	// p1, q1 and p2 are colinear and q2 lies on segment p1q1
 	if (o2 == 0 && onSegment(p1, q2, q1)) return true;
-
-	// p2, q2 and p1 are colinear and p1 lies on segment p2q2
 	if (o3 == 0 && onSegment(p2, p1, q2)) return true;
-
-	// p2, q2 and q1 are colinear and q1 lies on segment p2q2
 	if (o4 == 0 && onSegment(p2, q1, q2)) return true;
-
 	return false; // Doesn't fall in any of the above cases
 }
 
@@ -206,9 +186,8 @@ void IAProcessing::print(){
 
 	for (auto it = m_links.begin(); it != m_links.end(); ++it){
 		//if (it->id == 54)
-			Log::debug() << it->id << it->left << it->beginPosition.x << it->beginPosition.y << it->endPosition.x << it->endPosition.y << it->type << it->startingNode->id << it->endingNode->id;
+			Log::debug("Printing") << it->id << it->left << it->beginPosition.x << it->beginPosition.y << it->endPosition.x << it->endPosition.y << it->type << it->startingNode->id << it->endingNode->id;
 		if (!it->beginPosition || !it->endPosition){
-			Log::debug() << "jumped !";
 			continue;
 		}
 		vec.push_back(it->beginPosition);
@@ -221,91 +200,59 @@ void IAProcessing::print(){
 				m_outputImage->setPixel(it2->x, it2->y, sf::Color(255, 168, 0));
 		}
 		vec.clear();
-		Log::debug() << "done !";
+		//Log::debug() << "done !";
 	}
 }
 
 void IAProcessing::link(){
 	Log::debug() << "Link Begin";
-	int i2;
-	point falling_origin, falling_limit, falling_corner,
-		jumping_goal, jumping_limit, jumping_corner1, jumping_corner2;
+	for (Node& n : m_nodes){
+		testDrop(n);
+	}
+}
 
-	bool left = true;
-	for (int o = 0; o < 2; o++){
-		for (Node& n : m_nodes){
-			//Needed data for falling calculation
-			determineFallingData(n, falling_origin, falling_limit, falling_corner, left);
-
-			//Needed data for Jumping calculation
-			jumping_goal = falling_origin;
-			determineJumpingData(jumping_goal, jumping_limit, jumping_corner1, jumping_corner2, left);
-			//Log::debug("IA-Link") << falling_origin.x << falling_origin.y << falling_limit.x << falling_limit.y << falling_corner.x << falling_corner.y;
-			for (Node& m : m_nodes){
-				if (n == m){
-				//	Log::debug() << "pass" << n.id << m.id;
-					continue;
-				}
-				else
-				//	Log::debug() << "No Pass" << n.id << m.id;
-				for (int i = 1; i < m.area.size(); ++i){
-					i2 = (i < m.area.size() - 1) ? i + 1 : i + 1 - m.area.size();
-					if (!m.area[i].solid || !m.area[i2].solid)
-						continue;
-					//Log::debug() << "Checking" << m.area[i].x << m.area[i].y;
-					//Log::debug("IA-Link Intersect") << m.area[i].x << m.area[i].y << m.area[i2].x << m.area[i2].y;
-					//Falling
-					if (PointInTriangle(m.area[i], falling_origin, falling_corner, falling_limit)){
-						Link newLink;
-						newLink.beginPosition = falling_origin;
-						newLink.endPosition = m.area[i];
-						newLink.type = "fall";
-						newLink.startingNode = &n;
-						newLink.endingNode = &m;
-						newLink.left = left;
-						m_links.push_back(newLink);
-					}
-					else if (doIntersect(falling_origin, falling_limit, m.area[i], m.area[i2]) || doIntersect(falling_origin, falling_corner, m.area[i], m.area[i2])){
-						Link newLink;
-						newLink.beginPosition = falling_origin;
-						newLink.type = "fall";
-						newLink.startingNode = &n;
-						newLink.endingNode = &m;
-						m_links.push_back(newLink);
-						newLink.left = left;
-					}
-
-					//Jumping
-					if (PointInCarre(m.area[i], jumping_goal, jumping_limit)){
-						Log::debug() << "In Carre";
-						Link newLink;
-						newLink.beginPosition = m.area[i];
-						newLink.endPosition = jumping_goal;
-						newLink.type = "jump";
-						newLink.startingNode = &m;
-						newLink.endingNode = &n;
-						newLink.left = left;
-						if (checkAddJump(newLink))
-							m_links.push_back(newLink);
-					}
-					else if (doIntersect(jumping_goal, jumping_corner2, m.area[i], m.area[i2]) || doIntersect(jumping_corner1, jumping_limit, m.area[i], m.area[i2])){
-						Log::debug() << "Cross Border";
-						Link newLink;
-						newLink.endPosition = jumping_goal;
-						newLink.beginPosition = getPointOfCollision(jumping_corner1, jumping_limit, m.area[i], m.area[i2]);
-						if (!newLink.beginPosition)
-							newLink.beginPosition = getPointOfCollision(jumping_goal, jumping_corner2, m.area[i], m.area[i2]);
-						newLink.type = "jump";
-						newLink.startingNode = &m;
-						newLink.endingNode = &n;
-						newLink.left = left;
-						if (checkAddJump(newLink))
-							m_links.push_back(newLink);
-					}
-				}
-			}
+void IAProcessing::addLink(Node* begin, Node* end, point& beginPos, point& endPos, std::string type, bool left)
+{
+	Link newLink;
+	newLink.beginPosition = beginPos;
+	newLink.endPosition = endPos;
+	newLink.startingNode = begin;
+	newLink.endingNode = end;
+	newLink.left = left;
+	newLink.type = type;
+	float newDist = distance(beginPos, endPos);
+	for (auto it = m_links.begin(); it != m_links.end(); ++it)
+	{
+		Log::debug() << begin->id << it->id;
+		if (newLink.startingNode == it->startingNode && newLink.endingNode == it->endingNode && newLink.beginPosition == it->beginPosition && distance(it->beginPosition, it->endPosition) < newDist){
+			return;
 		}
-		left = false;
+		else if (newLink.startingNode == it->startingNode && newLink.endingNode == it->endingNode && newLink.beginPosition == it->beginPosition && distance(it->beginPosition, it->endPosition) > newDist){
+			it = m_links.erase(it);
+			Log::debug() << "erased";
+		}
+	}
+	Log::debug() << begin->id << "done add link";
+}
+
+
+void IAProcessing::testDrop(Node& n)
+{
+	Node* node;
+	point endposition;
+	std::function<float(float, float)> flinear = linear;
+	for (float i = 0.f; i < 1.f; i += 0.1){
+		auto fcurrentlinear = std::bind(flinear, std::placeholders::_1, i);
+		node = detectOnLine(n, n.area[0], fcurrentlinear, endposition, true);
+		if (node)
+		{
+			addLink(&n, node, n.area[0], endposition, "fall", false);
+		}
+		node = detectOnLine(n, n.area[n.area.size()-1], fcurrentlinear, endposition, false);
+		if (node)
+		{
+			addLink(&n, node, n.area[0], endposition, "fall", true);
+		}
 	}
 }
 
@@ -319,7 +266,7 @@ void IAProcessing::clearNode1(){
 			++it;
 	}
 }
-
+/*
 void IAProcessing::determineFallingPoint(point& current, point& result, bool left){
 	if (result.x == -42 || current.x == result.x && current.y > result.y){
 		result = current;
@@ -384,7 +331,7 @@ void IAProcessing::determineJumpingLimit(point& current, point& result, bool lef
 	else if (result.y < 0)
 		result.y = 0;
 }
-
+*/
 point IAProcessing::getPointOfCollision(point& a1, point& a2, point& b1, point& b2){
 	point result(-1, -1);
 	float x12 = a1.x - a2.x;
@@ -408,7 +355,7 @@ point IAProcessing::getPointOfCollision(point& a1, point& a2, point& b1, point& 
 	}
 	return result;
 }
-
+/*
 float IAProcessing::sign(point& p1, point& p2, point& p3)
 {
 	return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
@@ -452,7 +399,7 @@ bool IAProcessing::PointInCarre(point& pt, point& v1, point& v2){
 	}
 	return ((pt.x >= v1.x && pt.x <= v2.x && pt.y >= v1.y && pt.y <= v2.y) || (pt.x >= v2.x && pt.x <= v1.x && pt.y >= v2.y && pt.y <= v1.y));
 }
-
+*/
 bool IAProcessing::checkAddJump(Link& l){
 	for (auto it = m_links.begin(); it != m_links.end(); ++it){
 		if (l.id != it->id && l.type == it->type && l.startingNode == it->startingNode && l.endingNode == it->endingNode){
@@ -470,38 +417,50 @@ bool IAProcessing::checkAddJump(Link& l){
 	return true;
 }
 
-void IAProcessing::detectOnLine(Node& nodeOfOrigin, sf::Vector2f origin, float (*function)(float), bool increasing){
-	sf::Vector2f delta(0,0), newpoint;
+Node* IAProcessing::detectOnLine(Node& nodeOfOrigin, point origin, std::function<float(float)> function, point &result, bool increasing){
+	point delta(0,0), newpoint, previous;
+	result.x = 0; result.y = 0;
 	//bool stop = false;
-	for (auto it = nodeOfOrigin.area.begin(); it != nodeOfOrigin.area.end(); ++it)
-		Log::debug() << it
-	return;
 	while (true)
 	{
-		if (increasing)
+		if (increasing){
 			delta.x++;
-		else
+			delta.y = function(delta.x);
+		}
+		else{
 			delta.x--;
-		delta.y = function(delta.x);
+			delta.y = function(-delta.x);
+		}
 		newpoint = origin + delta;
-		Log::debug() << "newPoint = " << newpoint;
-		if (newpoint.x < 0 || newpoint.y < 0 || newpoint.x > mapsize.x || newpoint.y > mapsize.y)
-			return;
+		//Log::debug() << "newPoint = " << newpoint.x << newpoint.y;
+		if (newpoint.x < 0 || newpoint.y < 0 || newpoint.x > mapsize.x || newpoint.y > mapsize.y){
+			//Log::debug() << "Over The map" << newpoint.x << newpoint.y << mapsize.x << mapsize.y;
+			return nullptr;
+		}
 		for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it)
 		{
 			if (*it == nodeOfOrigin)
 				continue;
-
-			if (isPointInNode(*it, newpoint))
+			for (int i = 0; i < it->area.size()-1; i++)
 			{
-				Log::debug() << "is ok ! with " << it->id;
-				return;
+				if (doIntersect(it->area[i], it->area[i + 1], previous, newpoint)){
+					Log::debug() << "is ok ! with " << it->id;
+					result = newpoint;
+					return &(*it);
+				}
 			}
 		}
+		previous = newpoint;
 	}
 }
 
-bool IAProcessing::isPointInNode(Node& node, sf::Vector2f& pt)
+float IAProcessing::distance(point& a, point& b)
+{
+	return sqrtf((a.x - b.x)*(a.x - b.x) + (a.y - b.y)*(a.y - b.y)*(a.y - b.y)*(a.y - b.y));
+}
+
+
+/*bool IAProcessing::isPointInNode(Node& node, sf::Vector2f& pt)
 {
 	std::vector<point> points = node.area;
 	int i, j, nvert = points.size();
@@ -513,9 +472,14 @@ bool IAProcessing::isPointInNode(Node& node, sf::Vector2f& pt)
 			c = !c;
 	}
 	return c;
-}
+}*/
 
 float test(float x)
 {
 	return x;
+}
+
+float linear(float x, float p)
+{
+	return x*p;
 }

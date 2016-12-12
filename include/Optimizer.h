@@ -25,6 +25,9 @@ struct point{
 	inline bool operator!(){
 		return (x == -1, y == -1);
 	}
+	inline point operator+(point&p){
+		return point(p.x + x, p.y + y);
+	}
 	float x;
 	float y;
 	bool solid = true;
