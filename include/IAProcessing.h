@@ -27,6 +27,12 @@ struct Node{
 			return false;
 	}
 
+	inline bool operator!=(const Node& a){
+		if (id != a.id)
+			return true;
+		else
+			return false;
+	}
 	int id;
 	std::vector<point> area;
 };
@@ -37,6 +43,18 @@ struct Link{
 		id = nextId;
 		nextId++;
 	}
+
+	void copyFrom(Link& l)
+	{
+		id = l.id;
+		beginPosition = l.beginPosition;
+		endPosition = l.endPosition;
+		left = l.left;
+		startingNode = l.startingNode;
+		endingNode = l.endingNode;
+		type = l.type;
+	}
+
 	int			 id;
 	point		 beginPosition = point(-1,-1);
 	point		 endPosition = point(-1, -1);
@@ -57,32 +75,38 @@ public:
 	~IAProcessing();
 	void process(std::vector<std::vector<point>>& AllShapes);
 	std::vector<Node>& getNodes(){ return m_nodes; }
+	
 	void writeAll(std::string path);
 	void writeAll(std::ofstream& s);
 	void print();
 
 private:
 
+	//bool isPointInNode(Node& node, sf::Vector2f& pt);
+	
+	void determinateNodes(std::vector<std::vector<point>>& AllShapes);
+		void clearNode1();
+	void determinateLinks();
+		void addLink(Node* begin, Node* end, point& beginPos, point& endPos, std::string type, bool left);
+		void testDrop(Node& n);
+
+
+	bool checkAddJump(Link& l);
+
+	Node* detectOnLine(Node& nodeOfOrigin, point origin, std::function<float(float)> f, point& result, bool increasing = true);
+
+	/* Writing */
+
+	void write(Node&, std::ofstream& stream);
+	void write(Link&, std::ofstream& stream);
+
+	/* Copy Paste */
+	point getPointOfCollision(point& a1, point& a2, point& b1, point& b2);
 	float distance(point& a, point& b);
 	bool is_between(point& first, point& second, point& checked);
-
 	bool onSegment(point p, point q, point r);
 	int  orientation(point p, point q, point r);
 	bool doIntersect(point p1, point q1, point p2, point q2);
-
-	Node* detectOnLine(Node& nodeOfOrigin, point origin, std::function<float(float)> f, point& result, bool increasing = true);
-	//bool isPointInNode(Node& node, sf::Vector2f& pt);
-	
-	void write(Node&, std::ofstream& stream);
-	void write(Link&, std::ofstream& stream);
-	void link();
-	void addLink(Node* begin, Node* end, point& beginPos, point& endPos, std::string type, bool left);
-	void testDrop(Node& n);
-	void clearNode1();
-
-	point getPointOfCollision(point& a1, point& a2, point& b1, point& b2);
-
-	bool checkAddJump(Link& l);
 
 	sf::Image*		  m_outputImage;
 	std::vector<Node> m_nodes;
