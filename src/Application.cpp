@@ -53,7 +53,7 @@ void Application::process(float tolerance, const std::string& output)
 	if (flags & PRINT & TIME) Timer::chronos<Application>();
 	if (flags & PRINT) {
 		print(ConvexShapes);
-		m_IAProcessor->print();
+		//m_IAProcessor->print();
 	}
 	if (flags & PRINT & TIME) Timer::chronos<Application>("Printing");
 

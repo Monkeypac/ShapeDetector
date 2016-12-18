@@ -67,6 +67,8 @@ struct Link{
 /* Curves Function */
 float test(float x);
 float linear(float x, float p);
+float jumpFunc(float x, float a, float maxJump);
+
 class IAProcessing
 {
 public:
@@ -89,6 +91,7 @@ private:
 	void determinateLinks();
 		void addLink(Node* begin, Node* end, point& beginPos, point& endPos, std::string type, bool left);
 		void testDrop(Node& n);
+		void testJump(Node& n);
 
 
 	bool checkAddJump(Link& l);
@@ -111,6 +114,9 @@ private:
 	sf::Image*		  m_outputImage;
 	std::vector<Node> m_nodes;
 	std::vector<Link> m_links;
+
+	//Printing
+	std::vector<point> m_BufferPrinter;
 };
 
 

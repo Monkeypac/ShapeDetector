@@ -44,7 +44,7 @@ void drawLine(point a, point b, std::vector<point>& vec, std::vector<point>::ite
 			++beginindex;
 		}
 	}
-	Log::debug("After:") << vec.size();
+	//Log::debug("After:") << vec.size();
 }
 
 void Correct(std::vector<point>& vec){

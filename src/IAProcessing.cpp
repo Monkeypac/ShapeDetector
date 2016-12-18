@@ -13,10 +13,10 @@ void IAProcessing::process(std::vector<std::vector<point>>& AllShapes)
 {
 	determinateNodes(AllShapes);
 	determinateLinks();
-	for (auto it = m_links.begin(); it != m_links.end(); ++it)
+	/*for (auto it = m_links.begin(); it != m_links.end(); ++it)
 	{
 		Log::debug() << it->id;
-	}
+	}*/
 }
 
 
@@ -49,7 +49,7 @@ void IAProcessing::determinateNodes(std::vector<std::vector<point>>& AllShapes)
 					float angle = delta.x / delta.y;
 					if (angle < 0.1){
 						okSegment = false;
-						Log::debug("Shape Cut") << angle << delta.x << delta.y << "||" << limit.x << limit.y << limitbefore.x << limitbefore.y;
+						//Log::debug("Shape Cut") << angle << delta.x << delta.y << "||" << limit.x << limit.y << limitbefore.x << limitbefore.y;
 					}
 				}
 			}
@@ -63,12 +63,12 @@ void IAProcessing::determinateNodes(std::vector<std::vector<point>>& AllShapes)
 					
 					if (doIntersect(current, limit, pointBegin, pointEnd) && differentShapes){
 						okPole = false;
-						Log::debug("Shape Cut") << "Hit poteau" << current.x << current.y << "||" << pointBegin.x << pointBegin.y << pointEnd.x << pointEnd.y;
+						//Log::debug("Shape Cut") << "Hit poteau" << current.x << current.y << "||" << pointBegin.x << pointBegin.y << pointEnd.x << pointEnd.y;
 					}
 					
 					else if (doIntersect(limitbefore, limit, pointBegin, pointEnd)){
 						okSegment = false;
-						Log::debug("Shape Cut") << "Hit corde" << current.x << current.y << "||" << pointBegin.x << pointBegin.y << pointEnd.x << pointEnd.y;
+						//Log::debug("Shape Cut") << "Hit corde" << current.x << current.y << "||" << pointBegin.x << pointBegin.y << pointEnd.x << pointEnd.y;
 					}
 				}
 			}
@@ -83,7 +83,7 @@ void IAProcessing::determinateNodes(std::vector<std::vector<point>>& AllShapes)
 
 			if (okPole && !creating){
 				m_nodes.emplace_back();
-				Log::debug("Shape Create") << m_nodes.back().id << j << n;
+				//Log::debug("Shape Create") << m_nodes.back().id << j << n;
 				m_nodes.back().area.push_back(current);
 				creating = true;
 			}
@@ -118,6 +118,7 @@ void IAProcessing::determinateLinks()
 {	
 	for (Node& n : m_nodes){
 		testDrop(n);
+		testJump(n);
 	}
 }
 
@@ -153,20 +154,60 @@ void IAProcessing::testDrop(Node& n)
 	Node* node;
 	point endposition;
 	std::function<float(float, float)> flinear = linear;
-	for (float i = 0.f; i < 1.f; i += 0.1){
+	for (float i = 1.f; i < 10.f; i = i*1.5){
 		auto fcurrentlinear = std::bind(flinear, std::placeholders::_1, i);
-		node = detectOnLine(n, n.area[0], fcurrentlinear, endposition, true);
-		if (node)
-		{
-			addLink(&n, node, n.area[0], endposition, "fall", false);
-		}
-		node = detectOnLine(n, n.area[n.area.size()-1], fcurrentlinear, endposition, false);
+		Log::debug("TestDrop") << n.id << n.area[0].x << n.area[0].y << true << i;
+		node = detectOnLine(n, n.area[0], fcurrentlinear, endposition, false);
 		if (node)
 		{
 			addLink(&n, node, n.area[0], endposition, "fall", true);
 		}
+		Log::debug("TestDrop") << n.id << n.area[n.area.size() - 1].x << n.area[n.area.size() - 1].y << false << i;
+		node = detectOnLine(n, n.area[n.area.size() - 1], fcurrentlinear, endposition, true);
+		if (node)
+		{
+			addLink(&n, node, n.area[n.area.size() - 1], endposition, "fall", false);
+		}
 	}
 }
+
+void IAProcessing::testJump(Node& n)
+{
+	Node* node;
+	point endposition;
+	float hmax = 500.f;
+	float ratioX, ratioY, speed = 100.f, deltaDistance, nbit;
+	point a, b, delta, floating;
+	for (float i = 1.f; i < 5.f; i += 1.f)
+	{
+		for (int j = 0; j < n.area.size() - 1; j++){
+			a = n.area[j];
+			b = n.area[j + 1];
+			delta = a - b;
+			ratioX = delta.x / (fabs(delta.y) + fabs(delta.x));
+			ratioY = delta.y / (fabs(delta.y) + fabs(delta.x));
+			auto function = std::bind(jumpFunc, std::placeholders::_1, i*(hmax/5), hmax);
+			deltaDistance = distance(a, b);
+			nbit = deltaDistance / speed;
+			for (int k = 0; k < nbit; k++){
+				floating.x = k*ratioX*speed + a.x;
+				floating.y = k*ratioY*speed + a.y;
+				Log::debug("TestJump") << n.id << floating.x << floating.y << true << i;
+				node = detectOnLine(n, floating, function, endposition, false);
+				if (node)
+				{
+					addLink(&n, node, floating, endposition, "jump", true);
+				}
+				node = detectOnLine(n, floating, function, endposition, true);
+				if (node)
+				{
+					addLink(&n, node, floating, endposition, "jump", false);
+				}
+			}
+		}
+	}
+}
+
 
 /* Copy Pasta */
 
@@ -193,17 +234,21 @@ Node* IAProcessing::detectOnLine(Node& nodeOfOrigin, point origin, std::function
 			//Log::debug() << "Over The map" << newpoint.x << newpoint.y << mapsize.x << mapsize.y;
 			return nullptr;
 		}
+		m_outputImage->setPixel(newpoint.x, newpoint.y, sf::Color::Magenta);
 		for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it)
 		{
 				for (int i = 0; i < it->area.size() - 1; i++)
 				{
 					if (doIntersect(it->area[i], it->area[i + 1], previous, newpoint)){
-						Log::debug() << "is ok ! from" <<  nodeOfOrigin.id << " with " << it->id;
 						result = newpoint;
-						if (*it == nodeOfOrigin && previous == origin)
+						if (*it == nodeOfOrigin && previous != origin){
+							Log::debug() << "Auto Hit";
 							return nullptr;
-						else
+						}
+						else if (*it != nodeOfOrigin){
+							Log::debug() << "is ok ! from" << nodeOfOrigin.id << " with " << it->id;
 							return &(*it);
+						}
 					}
 				}
 		}
@@ -247,7 +292,7 @@ bool IAProcessing::doIntersect(point p1, point q1, point p2, point q2)
 	int o2 = orientation(p1, q1, q2);
 	int o3 = orientation(p2, q2, p1);
 	int o4 = orientation(p2, q2, q1);
-
+	
 	if (o1 != o2 && o3 != o4)
 		return true;
 	if (o1 == 0 && onSegment(p1, p2, q1)) return true;
@@ -266,6 +311,12 @@ float test(float x)
 float linear(float x, float p)
 {
 	return x*p;
+}
+
+float jumpFunc(float x, float a, float maxJump)
+{
+	float d = sqrtf(a * maxJump);
+	return (x - d)*(x - d) / a - maxJump;
 }
 
 /* Writings Functions */
@@ -338,8 +389,8 @@ void IAProcessing::print(){
 				m_outputImage->setPixel(it2->x, it2->y, sf::Color(255, 168, 0));
 		}
 		vec.clear();
-		//Log::debug() << "done !";
 	}
+	Log::debug("IAProccessingPrint") << "Image Writing done !";
 }
 /*
 bool IAProcessing::is_between(point& first, point& second, point& checked){

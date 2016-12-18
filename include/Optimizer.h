@@ -22,11 +22,24 @@ struct point{
 		else
 			return false;
 	}
+
+	inline bool operator!=(const point& a){
+		if (a.x != x && a.y != y)
+			return true;
+		else
+			return false;
+	}
+
 	inline bool operator!(){
 		return (x == -1, y == -1);
 	}
+
 	inline point operator+(point&p){
 		return point(p.x + x, p.y + y);
+	}
+
+	inline point operator-(point& p){
+		return point(p.x - x, p.y - y);
 	}
 	float x;
 	float y;
