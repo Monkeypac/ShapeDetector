@@ -22,6 +22,7 @@ void IAProcessing::process(std::vector<std::vector<point>>& AllShapes)
 
 void IAProcessing::determinateNodes(std::vector<std::vector<point>>& AllShapes)
 {
+	m_allShapes = &AllShapes;
 	int i2, n;
 	bool okPole, okSegment, creating, differentShapes;
 	std::vector<point>* shape = nullptr;
@@ -242,15 +243,26 @@ Node* IAProcessing::detectOnLine(Node& nodeOfOrigin, point origin, std::function
 					if (doIntersect(it->area[i], it->area[i + 1], previous, newpoint)){
 						result = newpoint;
 						if (*it == nodeOfOrigin && previous != origin){
-							Log::debug() << "Auto Hit";
+							//Log::debug() << "Auto Hit";
 							return nullptr;
 						}
 						else if (*it != nodeOfOrigin){
-							Log::debug() << "is ok ! from" << nodeOfOrigin.id << " with " << it->id;
+							//Log::debug() << "is ok ! from" << nodeOfOrigin.id << " with " << it->id;
 							return &(*it);
 						}
 					}
 				}
+		}
+		if (previous != origin){
+			for (int i = 0; i < m_allShapes->size(); i++)
+			{
+				for (int j = 0; j < m_allShapes->at(i).size() - 1; j++){
+					if (doIntersect(m_allShapes->at(i).at(j), m_allShapes->at(i).at(j + 1), previous, newpoint)){
+						Log::debug() << "Physic";
+						return nullptr;
+					}
+				}
+			}
 		}
 		previous = newpoint;
 	}

@@ -35,6 +35,7 @@ struct Node{
 	}
 	int id;
 	std::vector<point> area;
+	std::vector<point>* physic;
 };
 
 struct Link{
@@ -114,7 +115,7 @@ private:
 	sf::Image*		  m_outputImage;
 	std::vector<Node> m_nodes;
 	std::vector<Link> m_links;
-
+	std::vector<std::vector<point>>* m_allShapes;
 	//Printing
 	std::vector<point> m_BufferPrinter;
 };
