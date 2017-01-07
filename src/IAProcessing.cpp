@@ -235,7 +235,7 @@ Node* IAProcessing::detectOnLine(Node& nodeOfOrigin, point origin, std::function
 			//Log::debug() << "Over The map" << newpoint.x << newpoint.y << mapsize.x << mapsize.y;
 			return nullptr;
 		}
-		m_outputImage->setPixel(newpoint.x, newpoint.y, sf::Color::Magenta);
+		//m_outputImage->setPixel(newpoint.x, newpoint.y, sf::Color::Magenta);
 		for (auto it = m_nodes.begin(); it != m_nodes.end(); ++it)
 		{
 				for (int i = 0; i < it->area.size() - 1; i++)
@@ -376,6 +376,7 @@ void IAProcessing::write(Link& l, std::ofstream& stream){
 
 void IAProcessing::print(){
 	int i = 0;
+	Log::debug("IA Print") << "Printing Node";
 	for (Node n : m_nodes) {
 		Correct(n.area);
 		for (auto it = n.area.begin(); it != n.area.end(); ++it){
@@ -383,10 +384,10 @@ void IAProcessing::print(){
 			i++;
 		}
 	}
+	Log::debug("IA Print") << "Printing Link";
 	std::vector<point> vec;
 
 	for (auto it = m_links.begin(); it != m_links.end(); ++it){
-		//if (it->id == 54)
 		Log::debug("Printing") << it->id << it->left << it->beginPosition.x << it->beginPosition.y << it->endPosition.x << it->endPosition.y << it->type << it->startingNode->id << it->endingNode->id;
 		if (!it->beginPosition || !it->endPosition){
 			continue;
